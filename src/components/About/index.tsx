@@ -13,24 +13,17 @@ const About = () => {
             <div className="w-full px-4 lg:w-1/2">
               <div className="mb-12 max-w-[540px] lg:mb-0">
                 <h2 className="mb-5 text-3xl font-bold leading-tight text-dark dark:text-white sm:text-[40px] sm:leading-[1.2]">
-                  Brilliant Toolkit to Build Next.js SaaS Websites.
+                  Sobre o Grupo Base®
                 </h2>
                 <p className="mb-10 text-base leading-relaxed text-body-color dark:text-dark-6">
-                  The main thrust is to focus on educating attendees on how to
-                  best protect highly vulnerable business applications with
-                  interactive panel discussions and roundtables led by subject
-                  matter experts.
-                  <br /> <br />
-                  The main thrust is to focus on educating attendees on how to
-                  best protect highly vulnerable business applications with
-                  interactive panel.
+                  Conheça o Grupo Base®, uma startup de gestão empresarial completa e inteligente que se adapta a qualquer segmento. Diferentemente de soluções genéricas, o Base® oferece módulos especializados para setores como saúde, comércio, serviços, entre outros – tudo integrado em um único sistema unificado. Disponível na nuvem e com interface amigável, a solução centraliza processos financeiros, contábeis e operacionais, automatizando tarefas rotineiras e garantindo conformidade fiscal. O resultado é a simplificação das operações, ganho de eficiência e vantagem competitiva para o seu negócio. Em resumo, o SaaS Base® é a base sólida para impulsionar crescimento e inovação na sua empresa, proporcionando uma gestão moderna e diferenciada.
                 </p>
 
                 <Link
                   href="#"
                   className="inline-flex items-center justify-center rounded-md bg-primary px-7 py-3 text-center text-base font-medium text-white duration-300 hover:bg-primary/90"
                 >
-                  Know More
+                  Saiba mais
                 </Link>
               </div>
             </div>
