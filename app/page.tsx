@@ -1,7 +1,7 @@
 "use client"
 
-import About from "../src/components/About/index"
+import { cn } from "../lib/utils"
 
 export default function SyntheticV0PageForDeployment() {
-  return <About />
+  return <cn />
 }
