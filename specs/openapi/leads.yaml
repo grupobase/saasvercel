@@ -1,0 +1,284 @@
+openapi: 3.1.0
+info:
+  title: Base® Leads & Webhooks API
+  version: 1.0.0
+  summary: Captura de leads e recepção de webhooks autenticados por HMAC
+  contact:
+    name: Base Platform
+servers:
+  - url: https://api.base.example.com
+    description: Produção
+  - url: https://staging-api.base.example.com
+    description: Staging
+security:
+  - ApiKeyAuth: []
+paths:
+  /api/leads:
+    post:
+      summary: Criar um lead
+      description: Cria um novo lead vindo do site ou integrações. Idempotência por `externalId` opcional.
+      operationId: createLead
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LeadCreateRequest'
+            examples:
+              exemploSite:
+                value:
+                  name: Ana Lima
+                  email: ana@example.com
+                  phone: "+55 11 91234-5678"
+                  company: Padaria Estrela
+                  vertical: food
+                  source: website
+                  utm:
+                    source: google
+                    medium: cpc
+                    campaign: base-food-keywords
+                  consent:
+                    lgpd: true
+                    marketing: true
+      responses:
+        '201':
+          description: Lead criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lead'
+        '400':
+          description: Requisição inválida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    get:
+      summary: Listar leads (admin)
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: query
+          name: cursor
+          schema:
+            type: string
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            default: 50
+        - in: query
+          name: vertical
+          schema:
+            $ref: '#/components/schemas/Vertical'
+      responses:
+        '200':
+          description: Lista paginada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Lead'
+                  nextCursor:
+                    type: string
+  /api/lead:
+    post:
+      deprecated: true
+      summary: Alias legado para /api/leads
+      operationId: createLeadAlias
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LeadCreateRequest'
+      responses:
+        '201':
+          description: Lead criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lead'
+  /api/leads/{id}:
+    get:
+      summary: Obter lead por ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lead
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lead'
+        '404':
+          description: Não encontrado
+  /api/webhook/leads:
+    post:
+      summary: Receber eventos de leads via webhook
+      description: Recebe eventos assinados via HMAC (SHA-256) usando o segredo do endpoint. A assinatura deve ser enviada no cabeçalho `X-Base-Signature` no formato `t=timestamp,v1=hexdigest`.
+      operationId: receiveLeadWebhook
+      security: []
+      parameters:
+        - in: header
+          name: X-Base-Signature
+          required: true
+          schema:
+            type: string
+            example: t=1712070400,v1=8c2f...d1
+        - in: header
+          name: X-Base-Delivery
+          required: true
+          schema:
+            type: string
+            description: Identificador idempotente do evento
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookLeadEvent'
+            examples:
+              leadCreated:
+                value:
+                  eventId: "evt_01HXYZ"
+                  specVersion: "2024-10-01"
+                  type: "LeadCreated"
+                  occurredAt: "2025-05-12T14:23:00Z"
+                  tenantId: null
+                  data:
+                    id: "lead_123"
+                    name: "Ana Lima"
+                    email: "ana@example.com"
+                    phone: "+55 11 91234-5678"
+                    company: "Padaria Estrela"
+                    vertical: "food"
+                    source: "website"
+                    utm:
+                      source: google
+                      medium: cpc
+                      campaign: base-food-keywords
+                    consent:
+                      lgpd: true
+                      marketing: true
+                    createdAt: "2025-05-12T14:23:00Z"
+      responses:
+        '204':
+          description: Aceito para processamento
+        '400':
+          description: Assinatura inválida ou payload malformado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-Api-Key
+  schemas:
+    Vertical:
+      type: string
+      enum: [clinica, hospital, comercio, servicos, agro, food, saloes, barbearia, pet, shop, industria, construcao, pos, tecn]
+    UTM:
+      type: object
+      additionalProperties: false
+      properties:
+        source:
+          type: string
+        medium:
+          type: string
+        campaign:
+          type: string
+        term:
+          type: string
+        content:
+          type: string
+    Consent:
+      type: object
+      required: [lgpd]
+      properties:
+        lgpd:
+          type: boolean
+        marketing:
+          type: boolean
+    LeadCreateRequest:
+      type: object
+      required: [name, email]
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 2
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        company:
+          type: string
+        vertical:
+          $ref: '#/components/schemas/Vertical'
+        source:
+          type: string
+          description: website, referral, partner, ad, etc.
+        utm:
+          $ref: '#/components/schemas/UTM'
+        consent:
+          $ref: '#/components/schemas/Consent'
+        externalId:
+          type: string
+          description: Para idempotência da criação
+    Lead:
+      allOf:
+        - $ref: '#/components/schemas/LeadCreateRequest'
+        - type: object
+          required: [id, createdAt]
+          properties:
+            id:
+              type: string
+            createdAt:
+              type: string
+              format: date-time
+    WebhookLeadEvent:
+      type: object
+      additionalProperties: false
+      required: [eventId, specVersion, type, occurredAt, data]
+      properties:
+        eventId:
+          type: string
+        specVersion:
+          type: string
+        type:
+          type: string
+          enum: [LeadCreated]
+        occurredAt:
+          type: string
+          format: date-time
+        tenantId:
+          type: ["string", "null"]
+        correlationId:
+          type: string
+        data:
+          $ref: '#/components/schemas/Lead'
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        requestId:
+          type: string
+tags:
+  - name: Leads
+  - name: Webhooks

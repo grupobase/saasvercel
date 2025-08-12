@@ -1,0 +1,256 @@
+asyncapi: '2.6.0'
+info:
+  title: Base® Event Catalog
+  version: '1.0.0'
+  description: Eventos de negócio padronizados da plataforma Base®
+servers:
+  prod:
+    url: kafka+ssl://broker.prod.base.example.com:9093
+    protocol: kafka-secure
+  staging:
+    url: kafka+ssl://broker.stg.base.example.com:9093
+    protocol: kafka-secure
+defaultContentType: application/json
+channels:
+  lead.created:
+    description: Publicado quando um lead é criado via API ou importação
+    subscribe:
+      message:
+        $ref: '#/components/messages/LeadCreated'
+  checkout.completed:
+    subscribe:
+      message:
+        $ref: '#/components/messages/CheckoutCompleted'
+  invoice.issued:
+    subscribe:
+      message:
+        $ref: '#/components/messages/InvoiceIssued'
+  invoice.paid:
+    subscribe:
+      message:
+        $ref: '#/components/messages/InvoicePaid'
+  appointment.booked:
+    subscribe:
+      message:
+        $ref: '#/components/messages/AppointmentBooked'
+  surgery.scheduled:
+    subscribe:
+      message:
+        $ref: '#/components/messages/SurgeryScheduled'
+  stock.decremented:
+    subscribe:
+      message:
+        $ref: '#/components/messages/StockDecremented'
+  workorder.closed:
+    subscribe:
+      message:
+        $ref: '#/components/messages/WorkOrderClosed'
+  productionorder.released:
+    subscribe:
+      message:
+        $ref: '#/components/messages/ProductionOrderReleased'
+components:
+  schemas:
+    EventMeta:
+      type: object
+      required: [eventId, specVersion, occurredAt]
+      additionalProperties: false
+      properties:
+        eventId:
+          type: string
+        specVersion:
+          type: string
+          example: '2024-10-01'
+        occurredAt:
+          type: string
+          format: date-time
+        tenantId:
+          type: ["string", "null"]
+        correlationId:
+          type: string
+        producer:
+          type: string
+    Lead:
+      type: object
+      required: [id, name, email, createdAt]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string }
+        company: { type: string }
+        vertical: { type: string }
+        source: { type: string }
+        utm:
+          type: object
+          properties:
+            source: { type: string }
+            medium: { type: string }
+            campaign: { type: string }
+        consent:
+          type: object
+          properties:
+            lgpd: { type: boolean }
+            marketing: { type: boolean }
+        createdAt: { type: string, format: date-time }
+    Invoice:
+      type: object
+      required: [id, tenantId, amount, currency, status, issuedAt]
+      properties:
+        id: { type: string }
+        tenantId: { type: string }
+        amount: { type: number, format: float }
+        currency: { type: string, example: BRL }
+        status: { type: string, enum: [issued, paid, canceled] }
+        issuedAt: { type: string, format: date-time }
+        paidAt: { type: string, format: date-time }
+    Appointment:
+      type: object
+      required: [id, patientId, professionalId, startAt]
+      properties:
+        id: { type: string }
+        tenantId: { type: string }
+        unitId: { type: string }
+        patientId: { type: string }
+        professionalId: { type: string }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
+        status: { type: string, enum: [booked, confirmed, canceled, completed] }
+    Surgery:
+      type: object
+      required: [id, patientId, roomId, scheduledAt]
+      properties:
+        id: { type: string }
+        tenantId: { type: string }
+        patientId: { type: string }
+        roomId: { type: string }
+        scheduledAt: { type: string, format: date-time }
+    StockMovement:
+      type: object
+      required: [id, itemId, quantity, movementType]
+      properties:
+        id: { type: string }
+        tenantId: { type: string }
+        itemId: { type: string }
+        quantity: { type: number }
+        uom: { type: string }
+        movementType: { type: string, enum: [decrement, increment] }
+        reference: { type: string }
+    WorkOrder:
+      type: object
+      required: [id, status]
+      properties:
+        id: { type: string }
+        tenantId: { type: string }
+        status: { type: string }
+    ProductionOrder:
+      type: object
+      required: [id, status]
+      properties:
+        id: { type: string }
+        tenantId: { type: string }
+        status: { type: string, enum: [released, in_process, finished] }
+  messages:
+    LeadCreated:
+      name: LeadCreated
+      title: Lead criado
+      contentType: application/json
+      payload:
+        type: object
+        allOf:
+          - $ref: '#/components/schemas/EventMeta'
+          - type: object
+            required: [type, data]
+            properties:
+              type:
+                type: string
+                const: LeadCreated
+              data:
+                $ref: '#/components/schemas/Lead'
+    CheckoutCompleted:
+      name: CheckoutCompleted
+      payload:
+        type: object
+        allOf:
+          - $ref: '#/components/schemas/EventMeta'
+          - type: object
+            properties:
+              type: { type: string, const: CheckoutCompleted }
+              data:
+                type: object
+                properties:
+                  tenantId: { type: string }
+                  planId: { type: string }
+                  amount: { type: number }
+                  currency: { type: string }
+                  paymentMethod: { type: string }
+    InvoiceIssued:
+      name: InvoiceIssued
+      payload:
+        type: object
+        allOf:
+          - $ref: '#/components/schemas/EventMeta'
+          - type: object
+            properties:
+              type: { type: string, const: InvoiceIssued }
+              data: { $ref: '#/components/schemas/Invoice' }
+    InvoicePaid:
+      name: InvoicePaid
+      payload:
+        type: object
+        allOf:
+          - $ref: '#/components/schemas/EventMeta'
+          - type: object
+            properties:
+              type: { type: string, const: InvoicePaid }
+              data: { $ref: '#/components/schemas/Invoice' }
+    AppointmentBooked:
+      name: AppointmentBooked
+      payload:
+        type: object
+        allOf:
+          - $ref: '#/components/schemas/EventMeta'
+          - type: object
+            properties:
+              type: { type: string, const: AppointmentBooked }
+              data: { $ref: '#/components/schemas/Appointment' }
+    SurgeryScheduled:
+      name: SurgeryScheduled
+      payload:
+        type: object
+        allOf:
+          - $ref: '#/components/schemas/EventMeta'
+          - type: object
+            properties:
+              type: { type: string, const: SurgeryScheduled }
+              data: { $ref: '#/components/schemas/Surgery' }
+    StockDecremented:
+      name: StockDecremented
+      payload:
+        type: object
+        allOf:
+          - $ref: '#/components/schemas/EventMeta'
+          - type: object
+            properties:
+              type: { type: string, const: StockDecremented }
+              data: { $ref: '#/components/schemas/StockMovement' }
+    WorkOrderClosed:
+      name: WorkOrderClosed
+      payload:
+        type: object
+        allOf:
+          - $ref: '#/components/schemas/EventMeta'
+          - type: object
+            properties:
+              type: { type: string, const: WorkOrderClosed }
+              data: { $ref: '#/components/schemas/WorkOrder' }
+    ProductionOrderReleased:
+      name: ProductionOrderReleased
+      payload:
+        type: object
+        allOf:
+          - $ref: '#/components/schemas/EventMeta'
+          - type: object
+            properties:
+              type: { type: string, const: ProductionOrderReleased }
+              data: { $ref: '#/components/schemas/ProductionOrder' }

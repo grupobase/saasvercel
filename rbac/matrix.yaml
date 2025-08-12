@@ -1,0 +1,105 @@
+version: 1
+model:
+  hierarchy:
+    - organization
+    - unit
+    - team
+    - user
+roles:
+  base:
+    - key: owner
+      name: Proprietário
+      scope: organization
+      permissions:
+        - identity.manage
+        - tenants.manage
+        - billing.manage
+        - catalog.manage
+        - fiscal.manage
+        - notifications.manage
+        - webhooks.manage
+        - rbac.manage
+        - audit.read
+    - key: admin
+      name: Admin
+      scope: organization
+      permissions:
+        - identity.manage
+        - tenants.read
+        - billing.read
+        - catalog.manage
+        - fiscal.manage
+        - notifications.manage
+        - webhooks.manage
+        - audit.read
+    - key: manager
+      name: Gestor
+      scope: unit
+      permissions:
+        - catalog.read
+        - billing.read
+        - reports.read
+        - domain.configure
+    - key: operator
+      name: Operador
+      scope: unit
+      permissions:
+        - domain.operate
+        - catalog.read
+        - fiscal.issue
+    - key: viewer
+      name: Visualizador
+      scope: unit
+      permissions:
+        - reports.read
+verticals:
+  clinica:
+    roles:
+      - key: medico
+        permissions: [clinica.prontuario.write, agenda.manage, nfse.issue]
+      - key: recepcao
+        permissions: [agenda.manage, notificacao.send]
+      - key: financeiro
+        permissions: [nfse.issue, repasse.manage, contas.manage]
+  hospital:
+    roles:
+      - key: cirurgiao
+        permissions: [ot.agenda.manage, cirurgia.write]
+      - key: faturamento
+        permissions: [tiss.manage, glosa.manage]
+  comercio:
+    roles:
+      - key: pdv_atendente
+        permissions: [pdv.sale, nfce.issue]
+      - key: estoque
+        permissions: [estoque.adjust, compras.manage]
+  food:
+    roles:
+      - key: garcom
+        permissions: [comanda.manage]
+      - key: cozinha
+        permissions: [kds.operate]
+  industria:
+    roles:
+      - key: pcp
+        permissions: [mrp.plan, pcp.schedule]
+      - key: qualidade
+        permissions: [quality.record]
+  construcao:
+    roles:
+      - key: engenheiro
+        permissions: [obra.schedule, obra.cost.manage]
+      - key: almoxarife
+        permissions: [insumos.manage]
+  pos:
+    roles:
+      - key: atendente
+        permissions: [pdv.sale, nfce.issue]
+policies:
+  abac:
+    - name: Profissional enxerga apenas sua unidade
+      condition: user.unitId == resource.unitId
+      appliesTo: [agenda.*, prontuario.*]
+  tenant_isolation:
+    - name: RLS por tenant
+      description: Todas as queries aplicam filtro tenant_id = current_tenant()
